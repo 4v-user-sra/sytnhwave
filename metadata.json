@@ -1,0 +1,6 @@
+{
+  "name": "SynthWave",
+  "description": "An interactive browser-based synthesizer with customizable sounds and controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
