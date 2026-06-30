@@ -76,7 +76,7 @@ export default function App() {
     const targetFreq = freq * Math.pow(2, octave);
     if (activeNodes.current.has(targetFreq)) {
         stopNote(targetFreq);
-        if (!isInfinitePad) return;
+        if (isInfinitePad) return;
     }
     
     const osc = audioContext.current.createOscillator();
@@ -117,73 +117,103 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0B0E] text-[#E0E0E0] p-8 font-sans">
-      <h1 className="text-5xl font-black tracking-tighter text-white mb-8 uppercase">SynthWave</h1>
+    <div className="min-h-screen bg-[#0A0B0E] text-[#E0E0E0] p-8 md:p-12 font-sans max-w-7xl mx-auto">
+      <h1 className="text-6xl font-black tracking-tighter text-white mb-10 uppercase">SynthWave</h1>
       
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="bg-[#15171C] p-4 border border-white/10">
-            <h2 className="text-xs uppercase opacity-60 mb-2">Oscillator</h2>
-            <div className="flex flex-wrap gap-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="bg-[#15171C] p-6 border border-white/10 flex flex-col">
+            <h2 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4 text-[#FF007A]">Oscillator</h2>
+            <div className="flex flex-wrap gap-2 mb-4">
                 {(['sine', 'square', 'sawtooth', 'triangle'] as const).map(type => (
                     <button 
                         key={type}
                         onClick={() => setOscillatorType(type)}
-                        className={`px-3 py-1 text-xs uppercase border ${oscillatorType === type ? 'border-[#00F0FF] text-[#00F0FF]' : 'border-white/10 text-white/50'}`}
+                        className={`px-4 py-2 text-sm font-medium uppercase border transition-colors ${oscillatorType === type ? 'border-[#00F0FF] text-[#00F0FF] bg-[#00F0FF]/10' : 'border-white/10 text-white/50 hover:border-white/30 hover:text-white'}`}
                     >
                         {type}
                     </button>
                 ))}
             </div>
+            <p className="text-xs text-white/40 mt-auto leading-relaxed">Selects the foundational waveform shape, determining the raw timbre and harmonic content of the sound.</p>
         </div>
-        <div className="bg-[#15171C] p-4 border border-white/10">
-            <h2 className="text-xs uppercase opacity-60 mb-2">Filter Cutoff ({Math.round(filterCutoff)}Hz)</h2>
-            <input type="range" min="200" max="10000" step="100" value={filterCutoff} onChange={(e) => setFilterCutoff(Number(e.target.value))} className="w-full accent-[#FF007A]" />
+        
+        <div className="bg-[#15171C] p-6 border border-white/10 flex flex-col">
+            <h2 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4 text-[#00F0FF]">Filter Cutoff <span className="opacity-50 text-white font-normal">({Math.round(filterCutoff)}Hz)</span></h2>
+            <input type="range" min="200" max="10000" step="100" value={filterCutoff} onChange={(e) => setFilterCutoff(Number(e.target.value))} className="w-full accent-[#FF007A] mb-4" />
+            <p className="text-xs text-white/40 mt-auto leading-relaxed">Adjusts the low-pass filter frequency, removing high frequencies to make the sound darker or brighter.</p>
         </div>
-        <div className="bg-[#15171C] p-4 border border-white/10">
-            <h2 className="text-xs uppercase opacity-60 mb-2">Delay Time ({delayTime.toFixed(1)}s)</h2>
-            <input type="range" min="0.0" max="1.0" step="0.1" value={delayTime} onChange={(e) => setDelayTime(Number(e.target.value))} className="w-full accent-[#00F0FF]" />
+        
+        <div className="bg-[#15171C] p-6 border border-white/10 flex flex-col">
+            <h2 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4 text-white">Delay Time <span className="opacity-50 text-white font-normal">({delayTime.toFixed(1)}s)</span></h2>
+            <input type="range" min="0.0" max="1.0" step="0.1" value={delayTime} onChange={(e) => setDelayTime(Number(e.target.value))} className="w-full accent-[#00F0FF] mb-4" />
+            <p className="text-xs text-white/40 mt-auto leading-relaxed">Sets the time interval between the original sound and its repeating echoes.</p>
         </div>
-        <div className="bg-[#15171C] p-4 border border-white/10">
-            <h2 className="text-xs uppercase opacity-60 mb-2">Octave {octave}</h2>
-            <div className="flex gap-2">
-                <button onClick={() => setOctave(o => o - 1)} className="px-3 py-1 border border-white/10 text-white">-</button>
-                <button onClick={() => setOctave(o => o + 1)} className="px-3 py-1 border border-white/10 text-white">+</button>
+
+        <div className="lg:col-span-3 bg-[#15171C] p-6 border border-white/10 flex flex-col">
+            <h2 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-6 text-[#FF007A]">Envelope (ADSR)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="flex flex-col">
+                    <h3 className="text-sm font-bold uppercase mb-2">Attack <span className="opacity-50 text-white font-normal">({adsr.a.toFixed(1)}s)</span></h3>
+                    <input type="range" min="0.01" max="2" step="0.1" value={adsr.a} onChange={(e) => setAdsr({...adsr, a: Number(e.target.value)})} className="w-full accent-[#FF007A] mb-3" />
+                    <p className="text-[11px] text-white/40 leading-relaxed mt-auto">Time taken for the sound to reach peak volume after a key is pressed.</p>
+                </div>
+                <div className="flex flex-col">
+                    <h3 className="text-sm font-bold uppercase mb-2">Decay <span className="opacity-50 text-white font-normal">({adsr.d.toFixed(1)}s)</span></h3>
+                    <input type="range" min="0.01" max="2" step="0.1" value={adsr.d} onChange={(e) => setAdsr({...adsr, d: Number(e.target.value)})} className="w-full accent-[#FF007A] mb-3" />
+                    <p className="text-[11px] text-white/40 leading-relaxed mt-auto">Time taken for the volume to drop from peak to the sustain level.</p>
+                </div>
+                <div className="flex flex-col">
+                    <h3 className="text-sm font-bold uppercase mb-2">Sustain <span className="opacity-50 text-white font-normal">({adsr.s.toFixed(2)})</span></h3>
+                    <input type="range" min="0.01" max="1" step="0.01" value={adsr.s} onChange={(e) => setAdsr({...adsr, s: Number(e.target.value)})} className="w-full accent-[#FF007A] mb-3" />
+                    <p className="text-[11px] text-white/40 leading-relaxed mt-auto">The constant volume level held while the key remains pressed down.</p>
+                </div>
+                <div className="flex flex-col">
+                    <h3 className="text-sm font-bold uppercase mb-2">Release <span className="opacity-50 text-white font-normal">({adsr.r.toFixed(1)}s)</span></h3>
+                    <input type="range" min="0.01" max="4" step="0.1" value={adsr.r} onChange={(e) => setAdsr({...adsr, r: Number(e.target.value)})} className="w-full accent-[#FF007A] mb-3" />
+                    <p className="text-[11px] text-white/40 leading-relaxed mt-auto">Time taken for the sound to fade out completely after the key is released.</p>
+                </div>
             </div>
         </div>
-        <div className="bg-[#15171C] p-4 border border-white/10 flex flex-col items-center justify-center gap-2">
-            <button 
-                onClick={() => setIsLooping(!isLooping)}
-                className={`w-full px-4 py-2 uppercase font-bold text-xs ${isLooping ? 'bg-[#FF007A] text-white' : 'bg-transparent border border-white/20 text-white/50'}`}
-            >
-                {isLooping ? 'Loop: ON' : 'Loop: OFF'}
-            </button>
-            <button 
-                onClick={() => setIsInfinitePad(!isInfinitePad)}
-                className={`w-full px-4 py-2 uppercase font-bold text-xs ${isInfinitePad ? 'bg-[#00F0FF] text-black' : 'bg-transparent border border-white/20 text-white/50'}`}
-            >
-                {isInfinitePad ? 'Pad: ON' : 'Pad: OFF'}
-            </button>
+        
+        <div className="bg-[#15171C] p-6 border border-white/10 flex flex-col">
+            <h2 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-4 text-white">Octave <span className="opacity-50 text-white font-normal">{octave > 0 ? `+${octave}` : octave}</span></h2>
+            <div className="flex gap-4 mb-4">
+                <button onClick={() => setOctave(o => o - 1)} className="flex-1 py-3 border border-white/10 text-white hover:bg-white/5 text-xl font-bold transition-colors">-</button>
+                <button onClick={() => setOctave(o => o + 1)} className="flex-1 py-3 border border-white/10 text-white hover:bg-white/5 text-xl font-bold transition-colors">+</button>
+            </div>
+            <p className="text-xs text-white/40 mt-auto leading-relaxed">Shifts the pitch of the entire keyboard up or down by full octaves.</p>
         </div>
-        <div className="col-span-3 bg-[#15171C] p-4 border border-white/10 flex gap-4">
-            {(['a', 'd', 's', 'r'] as const).map(param => (
-                <div key={param} className="flex-1">
-                    <h2 className="text-xs uppercase opacity-60 mb-2">{param.toUpperCase()} ({adsr[param].toFixed(1)})</h2>
-                    <input type="range" min="0.01" max="2" step="0.1" value={adsr[param]} onChange={(e) => setAdsr({...adsr, [param]: Number(e.target.value)})} className="w-full accent-[#FF007A]" />
-                </div>
-            ))}
+        
+        <div className="bg-[#15171C] p-6 border border-white/10 flex flex-col justify-center gap-4 lg:col-span-2">
+            <div className="flex gap-4">
+                <button 
+                    onClick={() => setIsLooping(!isLooping)}
+                    className={`flex-1 px-6 py-4 uppercase font-bold text-sm tracking-widest transition-colors ${isLooping ? 'bg-[#FF007A] text-white' : 'bg-transparent border border-white/20 text-white/50 hover:border-white/40 hover:text-white'}`}
+                >
+                    {isLooping ? 'Loop: ON' : 'Loop: OFF'}
+                </button>
+                <button 
+                    onClick={() => setIsInfinitePad(!isInfinitePad)}
+                    className={`flex-1 px-6 py-4 uppercase font-bold text-sm tracking-widest transition-colors ${isInfinitePad ? 'bg-[#00F0FF] text-black' : 'bg-transparent border border-white/20 text-white/50 hover:border-white/40 hover:text-white'}`}
+                >
+                    {isInfinitePad ? 'Pad: ON' : 'Pad: OFF'}
+                </button>
+            </div>
+            <p className="text-xs text-white/40 mt-2 leading-relaxed"><strong>Loop:</strong> Continuously replays notes. <strong>Pad:</strong> Infinite sustain mode that holds notes indefinitely until toggled off.</p>
         </div>
       </div>
 
-      <div className="flex gap-1">
-        {NOTES.map(note => (
+      <div className="flex gap-2 w-full">
+        {NOTES.map((note, idx) => (
             <button 
                 key={note.name}
                 onMouseDown={() => playNote(note.freq)}
-                onMouseUp={() => !isInfinitePad && stopNote(note.freq)}
-                onMouseLeave={() => !isInfinitePad && stopNote(note.freq)}
-                className="flex-1 h-40 bg-[#15171C] text-[#E0E0E0] font-bold flex items-end justify-center pb-4 border border-[#FF007A] hover:bg-[#FF007A]/20"
+                onMouseUp={() => !isInfinitePad && stopNote(note.freq * Math.pow(2, octave))}
+                onMouseLeave={() => !isInfinitePad && stopNote(note.freq * Math.pow(2, octave))}
+                className="flex-1 h-56 bg-[#15171C] text-[#E0E0E0] text-xl font-bold flex flex-col items-center justify-end pb-6 border border-[#FF007A] hover:bg-[#FF007A]/20 transition-colors relative"
             >
-                {note.name}
+                <span className="mb-2">{note.name}</span>
+                <span className="text-[10px] opacity-40 font-normal tracking-widest uppercase">Key {['a', 's', 'd', 'f', 'g', 'h', 'j'][idx]}</span>
             </button>
         ))}
       </div>
